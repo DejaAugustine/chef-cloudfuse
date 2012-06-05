@@ -5,36 +5,12 @@
 # Copyright 2012, David Joos
 #
 
-#http://sandeepsidhu.wordpress.com/2011/03/07/mounting-cloud-files-using-cloudfuse-into-ubuntu-10-10-v2/
+##http://sandeepsidhu.wordpress.com/2011/03/07/mounting-cloud-files-using-cloudfuse-into-ubuntu-10-10-v2/
 #case node[:platform]
 #	when "ubuntu", "debian"
-#	  include_recipe "newrelic::debian"
+#		include_recipe "cloudfuse::debian"
 #	when "redhat", "centos", "fedora"
-#	  include_recipe "newrelic::redhat"
-#end
-#
-#directory "/var/run/newrelic" do
-#  owner "newrelic"
-#  group "newrelic"
-#end
-#
-#template "/etc/newrelic/nrsysmond.cfg" do
-#  source "nrsysmond.cfg.erb"
-#  owner "root"
-#  group "newrelic"
-#  mode "640"
-#  variables( :license_key => node[:newrelic][:license_key],
-#             :hostname => node[:fqdn] )
-#  notifies( :restart, "service[newrelic-sysmond]" ) if node[:newrelic][:enabled]
-#end
-#
-#service "newrelic-sysmond" do
-#  supports :status => true, :restart => true, :reload => true
-#  if node[:newrelic][:enabled]
-#    action [ :enable, :start ]
-#  else
-#    action [ :disable, :stop ]
-#  end
+#		include_recipe "cloudfuse::redhat"
 #end
 
 ########
@@ -44,7 +20,9 @@
 include_recipe "build-essential"
 include_recipe "git"
 
-pkgs = [libcurl4-openssl-dev, libxml2, libxml2-dev, libfuse-dev]
+#libcurl3 - not needed (?!)
+#libcurl3-dev => libcurl4-openssl-dev
+pkgs = ["libcurl3-dev", "libxml2", "libxml2-dev", "libfuse-dev"]
 
 pkgs.each do |pkg|
 	package pkg do
@@ -75,7 +53,7 @@ end
 bash "compile_cloudfuse" do
 	cwd "#{Chef::Config[:file_cache_path]}/cloudfuse"
 	code <<-EOH
-		./configure
+		./configure #{node[:cloudfuse][:compile_flags].join(' ')}
 		make clean && make && make install
 	EOH
 end
@@ -85,17 +63,28 @@ end
 ######
 
 #create configuration file
-#.cloudfuse
-#REQUIRED
-#username=[username]
-#api_key=[api key]
-#authurl=[auth URL]
-#OPTIONAL
-#use_snet=[True to use snet for connections]
-#cache_timeout=[seconds for directory caching, default 600]
+template "#{ENV["HOME"]}/.cloudfuse" do
+	source "cloudfuse.erb"
+	owner "root"
+	group "root"
+	mode 0640
+	variables(
+		:username => node[:cloudfuse][:rscf_username],
+		:api_key => node[:cloudfuse][:rscf_api_key],
+		:authurl => node[:cloudfuse][:rscf_authurl],
+		:use_snet => node[:cloudfuse][:rscf_use_snet],
+		:cache_timeout => node[:cloudfuse][:cache_timeout]
+	)
+end
 
-mkdir cloudfiles
-#cloudfuse /cloudfiles
+unless node[:cloudfuse][:fused_directory].nil?
+	directory "#{node[:cloudfuse][:fused_directory]}" do
+		owner "root"
+		group "root"
+	end
 
-#If you are not the root of the system, then you username will need to be part of “fuse” group. This can probably be accomplished with:
-#sudo usermod -a -G fuse [username]
+	execute "fuse" do
+		command "cloudfuse #{node[:cloudfuse][:fused_directory]}"
+		action :run
+	end
+end
