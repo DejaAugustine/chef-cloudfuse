@@ -73,10 +73,11 @@ unless node[:cloudfuse][:fused_directory].nil?
 	directory "#{node[:cloudfuse][:fused_directory]}" do
 		owner "root"
 		group "root"
+		notifies :run, "execute[cloudfuse-fuse]"
 	end
 
 	execute "cloudfuse-fuse" do
 		command "cloudfuse #{node[:cloudfuse][:fused_directory]} #{node[:cloudfuse][:command_flags]}"
-		action :run
+		action :nothing
 	end
 end
