@@ -17,6 +17,10 @@ Requirements
 ## Platforms:
 
 * Ubuntu
+* Debian
+* RHEL
+* CentOS
+* Fedora
 
 Attributes
 ==========
@@ -26,10 +30,11 @@ Attributes
 * `node['cloudfuse']['compile_flags']` - Array of flags to use in compilation process
 * `node['cloudfuse']['rscf_username']` - Rackspace Cloud Files username
 * `node['cloudfuse']['rscf_api_key']` - Rackspace Cloud Files API key
-* `node['cloudfuse']['rscf_authurl']` - Rackspace Cloud Files authentication URL
+* `node['cloudfuse']['rscf_authurl']` - Rackspace Cloud Files authentication URL: https://auth.api.rackspacecloud.com/v1.0 (US, default), https://lon.auth.api.rackspacecloud.com/v1.0 (UK)
 * `node['cloudfuse']['rscf_use_snet']` - Rackspace Cloud Files use servicenet for connections
 * `node['cloudfuse']['cache_timeout']` - Seconds for directory caching, default 600
-* `node['cloudfuse']['fused_directory']` - Directory on which RSCF will be mounted, "fused"
+* `node['cloudfuse']['fused_directory']` - Directory on which RSCF will be mounted, or "fused"
+* `node['cloudfuse']['command_flags']` - Flags for cloudfuse command
 
 Usage
 =====
@@ -46,6 +51,7 @@ References
 * [github] (https://github.com/redbo/cloudfuse/)
 * [Rackspace knowledge center article] (http://www.rackspace.com/knowledge_center/node/1873)
 * [CloudFuse blog article] (http://sandeepsidhu.wordpress.com/2011/03/07/mounting-cloud-files-using-cloudfuse-into-ubuntu-10-10-v2/)
+* [CloudFuse blog article] (http://makewhatis.com/2011/05/mounting-your-rackspace-cloudfiles-in-centosrhel-5-55-6-via-cloudfuse)
 
 License and Authors
 ===================

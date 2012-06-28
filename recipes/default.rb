@@ -5,24 +5,17 @@
 # Copyright 2012, David Joos
 #
 
-##http://sandeepsidhu.wordpress.com/2011/03/07/mounting-cloud-files-using-cloudfuse-into-ubuntu-10-10-v2/
-#case node[:platform]
-#	when "ubuntu", "debian"
-#		include_recipe "cloudfuse::debian"
-#	when "redhat", "centos", "fedora"
-#		include_recipe "cloudfuse::redhat"
-#end
-
-########
-#INSTALL
-########
-
+#include required recipes
 include_recipe "build-essential"
 include_recipe "git"
 
-#libcurl3 - not needed (?!)
-#libcurl3-dev => libcurl4-openssl-dev
-pkgs = ["libcurl3-dev", "libxml2", "libxml2-dev", "libfuse-dev"]
+#install required packages
+case node[:platform]
+	when "ubuntu", "debian"
+		pkgs = ["libcurl3-dev", "libxml2", "libxml2-dev", "libfuse-dev"]
+	when "redhat", "centos", "fedora"
+		pkgs = ["openssl", "openssl-devel", "curl", "curl-devel", "libxml2", "libxml2-devel", "fuse", "fuse-devel"]
+end
 
 pkgs.each do |pkg|
 	package pkg do
@@ -30,6 +23,7 @@ pkgs.each do |pkg|
 	end
 end
 
+#get source
 git "#{Chef::Config[:file_cache_path]}/cloudfuse" do
 	repository node[:cloudfuse][:git_repository]
 	reference node[:cloudfuse][:git_revision]
@@ -37,6 +31,7 @@ git "#{Chef::Config[:file_cache_path]}/cloudfuse" do
 	notifies :run, "bash[compile_cloudfuse]"
 end
 
+#install
 #Write the flags used to compile the application to disk. If the flags
 #do not match those that are in the compiled_flags attribute - we recompile
 template "#{Chef::Config[:file_cache_path]}/cloudfuse-compiled_with_flags" do
@@ -57,11 +52,7 @@ bash "compile_cloudfuse" do
 		make clean && make && make install
 	EOH
 end
-
-######
-#MOUNT
-######
-
+		
 #create configuration file
 template "#{ENV["HOME"]}/.cloudfuse" do
 	source "cloudfuse.erb"
@@ -77,14 +68,15 @@ template "#{ENV["HOME"]}/.cloudfuse" do
 	)
 end
 
+#mount
 unless node[:cloudfuse][:fused_directory].nil?
 	directory "#{node[:cloudfuse][:fused_directory]}" do
 		owner "root"
 		group "root"
 	end
 
-	execute "fuse" do
-		command "cloudfuse #{node[:cloudfuse][:fused_directory]}"
+	execute "cloudfuse-fuse" do
+		command "cloudfuse #{node[:cloudfuse][:fused_directory]} #{node[:cloudfuse][:command_flags]}"
 		action :run
 	end
 end
