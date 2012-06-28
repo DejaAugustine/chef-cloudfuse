@@ -10,6 +10,8 @@ include_recipe "build-essential"
 include_recipe "git"
 
 #install required packages
+pkgs = []
+
 case node[:platform]
 	when "ubuntu", "debian"
 		pkgs = ["libcurl3-dev", "libxml2", "libxml2-dev", "libfuse-dev"]
@@ -31,7 +33,7 @@ git "#{Chef::Config[:file_cache_path]}/cloudfuse" do
 	notifies :run, "bash[compile_cloudfuse]"
 end
 
-#install
+#compile
 #Write the flags used to compile the application to disk. If the flags
 #do not match those that are in the compiled_flags attribute - we recompile
 template "#{Chef::Config[:file_cache_path]}/cloudfuse-compiled_with_flags" do
