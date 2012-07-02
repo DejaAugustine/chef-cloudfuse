@@ -30,7 +30,7 @@ git "#{Chef::Config[:file_cache_path]}/cloudfuse" do
 	repository node[:cloudfuse][:git_repository]
 	reference node[:cloudfuse][:git_revision]
 	action :sync
-	notifies :run, "bash[compile_cloudfuse]"
+	notifies :run, "bash[cloudfuse-compile]"
 end
 
 #compile
@@ -44,42 +44,48 @@ template "#{Chef::Config[:file_cache_path]}/cloudfuse-compiled_with_flags" do
 	variables(
 		:compile_flags => node[:cloudfuse][:compile_flags]
 	)
-	notifies :run, "bash[compile_cloudfuse]"
+	notifies :run, "bash[cloudfuse-compile]"
 end
 
-bash "compile_cloudfuse" do
+bash "cloudfuse-compile" do
 	cwd "#{Chef::Config[:file_cache_path]}/cloudfuse"
 	code <<-EOH
 		./configure #{node[:cloudfuse][:compile_flags].join(' ')}
 		make clean && make && make install
 	EOH
 end
-		
-#create configuration file
-template "#{ENV["HOME"]}/.cloudfuse" do
+
+#set up mountpoint (directory)
+unless node[:cloudfuse][:mountpoint].nil?
+	unless File.exist?("#{node[:cloudfuse][:mountpoint]}")
+		directory "cloudfuse-create-mountpoint" do
+			path "#{node[:cloudfuse][:mountpoint]}"
+			owner "root"
+			group "root"
+			action :create
+		end
+	end
+end
+
+#cloudfuse init script
+template "/etc/init.d/cloudfuse" do
 	source "cloudfuse.erb"
 	owner "root"
 	group "root"
-	mode 0640
+	mode 0755
 	variables(
-		:username => node[:cloudfuse][:rscf_username],
-		:api_key => node[:cloudfuse][:rscf_api_key],
-		:authurl => node[:cloudfuse][:rscf_authurl],
-		:use_snet => node[:cloudfuse][:rscf_use_snet],
-		:cache_timeout => node[:cloudfuse][:cache_timeout]
+		:prefix => node[:cloudfuse][:prefix],
+		:mountpoint => node[:cloudfuse][:mountpoint],
+		:command_flags => node[:cloudfuse][:command_flags]
 	)
 end
 
-#mount
-unless node[:cloudfuse][:fused_directory].nil?
-	directory "#{node[:cloudfuse][:fused_directory]}" do
-		owner "root"
-		group "root"
-		notifies :run, "execute[cloudfuse-fuse]"
-	end
-
-	execute "cloudfuse-fuse" do
-		command "cloudfuse #{node[:cloudfuse][:fused_directory]} #{node[:cloudfuse][:command_flags]}"
-		action :nothing
-	end
+service "cloudfuse" do
+	start_command "/etc/init.d/cloudfuse start"
+	stop_command "/etc/init.d/cloudfuse stop"
+	restart_command "/etc/init.d/cloudfuse stop"
+	status_command "/etc/init.d/cloudfuse status"
+	supports [:start, :stop, :restart, :status]
+	#starts the service if it's not running and enables it to start at system boot time
+	action [:enable, :start]
 end
