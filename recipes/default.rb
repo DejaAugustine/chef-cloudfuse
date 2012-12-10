@@ -55,13 +55,23 @@ bash "cloudfuse-compile" do
 	EOH
 end
 
+#ensure that the mount user belongs to the fuse group
+unless node[:cloudfuse][:mount_user].nil?
+  unless node[:cloudfuse][:mount_user] == "root"
+    group "fuse" do
+      members node[:cloudfuse][:mount_user]
+      append true
+    end
+  end
+end
+
 #set up mountpoint (directory)
 unless node[:cloudfuse][:mountpoint].nil?
 	unless File.exist?("#{node[:cloudfuse][:mountpoint]}")
 		directory "cloudfuse-create-mountpoint" do
 			path "#{node[:cloudfuse][:mountpoint]}"
-			owner "root"
-			group "root"
+			owner node[:cloudfuse][:mount_user]
+			group node[:cloudfuse][:mount_group]
 			action :create
 		end
 	end
@@ -70,8 +80,8 @@ end
 #cloudfuse init script
 template "/etc/init.d/cloudfuse" do
 	source "cloudfuse.erb"
-	owner "root"
-	group "root"
+	owner node[:cloudfuse][:mount_user]
+	group node[:cloudfuse][:mount_group]
 	mode 0755
 	variables(
 		:prefix => node[:cloudfuse][:prefix],

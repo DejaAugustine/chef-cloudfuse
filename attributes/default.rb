@@ -11,3 +11,5 @@ default[:cloudfuse][:prefix] = "/usr/local/bin"
 default[:cloudfuse][:compile_flags] = []
 default[:cloudfuse][:mountpoint] = nil
 default[:cloudfuse][:command_flags] = nil
+default[:cloudfuse][:mount_user] = "root"
+default[:cloudfuse][:mount_group] = "root"
